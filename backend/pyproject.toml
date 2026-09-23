@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-mcp-data-platform-backend"
+version = "0.1.0"
+description = "AI MCP Data Platform backend — Phase 1A foundation"
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy[asyncio]>=2.0,<3.0",
+    "aiosqlite>=0.19,<1.0",
+    "asyncpg>=0.29,<1.0",
+    "alembic>=1.13,<2.0",
+    "pydantic>=2.7,<3.0",
+    "pydantic-settings>=2.3,<3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "ruff>=0.4,<1.0",
+    "mypy>=1.10,<2.0",
+    "sqlalchemy[mypy]>=2.0,<3.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "data", "services", "agent", "mcp", "llm"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "PT", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "data", "services", "agent", "mcp", "llm"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+ignore_missing_imports = true
+exclude = ["alembic/"]
+
+# Tests use implicit None return types — relax strict checking for test files
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false

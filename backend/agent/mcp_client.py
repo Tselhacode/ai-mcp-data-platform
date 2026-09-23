@@ -65,7 +65,9 @@ async def load_mcp_tools(mcp_server: FastMCP) -> list[StructuredTool]:
                 description=tool_description,
                 args_schema=None,
             )
-            # Override the args_schema from the MCP tool's input schema if available
+            # For parameterised tools, set args_schema to None post-construction to
+            # prevent LangChain from applying the inferred **kwargs schema, which
+            # would drop keyword arguments before they reach the underlying coroutine.
             if input_schema and "properties" in input_schema:
                 lc_tool.args_schema = None  # type: ignore[assignment]  # StructuredTool accepts None at runtime
 

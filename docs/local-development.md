@@ -50,10 +50,10 @@ cp ../.env.example ../.env
 alembic upgrade head
 
 # Seed the database
-python -m scripts.seed
+uv run python scripts/seed.py
 
 # Start the development server
-uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 **Backend available at:** http://localhost:8000
@@ -132,7 +132,7 @@ uv run pytest --cov=app --cov-report=html
 cd frontend && npm run test
 
 # Evaluation suite (offline, uses FakeChatModel)
-cd evaluations && uv run pytest
+cd backend && PYTHONPATH=$(pwd) uv run pytest ../evaluations/tests/ -v
 ```
 
 ---
@@ -200,13 +200,12 @@ For debugging, you can run the MCP server directly and inspect its tools:
 
 ```bash
 cd backend
-source .venv/bin/activate
 
 # Start MCP server (stdio mode)
-python -m mcp.server
+uv run python -m mcp._server
 
 # Or use the MCP inspector (if installed)
-npx @modelcontextprotocol/inspector python -m mcp.server
+npx @modelcontextprotocol/inspector uv run python -m mcp._server
 ```
 
 ---
@@ -214,17 +213,11 @@ npx @modelcontextprotocol/inspector python -m mcp.server
 ## Running Evaluations
 
 ```bash
-# Run full offline evaluation suite
-cd evaluations && pytest -v
+# Run full offline evaluation suite (from repo root)
+cd backend && PYTHONPATH=$(pwd) uv run pytest ../evaluations/tests/ -v
 
-# Run a specific task
-pytest evaluations/tests/test_task_highest_consumption.py -v
-
-# Run against real Bedrock (requires AWS credentials)
-LLM_PROVIDER=bedrock pytest evaluations/ -v
-
-# Generate an evaluation report
-python -m evaluations.report --last
+# Run against real Bedrock (requires AWS credentials and seed data)
+cd backend && LLM_PROVIDER=bedrock PYTHONPATH=$(pwd) uv run pytest ../evaluations/tests/ -v
 ```
 
 ---

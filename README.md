@@ -265,6 +265,66 @@ ai-mcp-data-platform/
 
 ---
 
+## How a Request Flows Through the System
+
+```
+User types:  "Which buildings had the largest electricity increase last month?"
+     │
+     ▼  HTTP POST /api/v1/query
+FastAPI route (thin — no business logic)
+     │
+     ▼  Python call
+AgentService  ← loads session history from database
+     │
+     ▼  Python call
+AnalystAgent  (LangChain / LangGraph create_react_agent)
+     │
+     │  LLM (ChatBedrock or FakeChatModel) decides which MCP tools to call
+     │
+     ▼  MCP protocol (in-process via fastmcp.Client)
+FastMCP server
+     ├── list_tables                → discovers available tables
+     ├── describe_table             → understands schema
+     └── get_consumption_trend      → fetches aggregated kWh by period
+          │
+          ▼  Python call
+     EnergyService (pure Python, no LangChain)
+          │
+          ▼  SQLAlchemy async query
+     SQLite / PostgreSQL
+          │
+          ▼  rows
+     Back through the chain → LLM synthesises final answer
+     │
+     ▼  JSON response
+React frontend displays answer + tool activity panel
+```
+
+LangSmith (optional) records the full trace — every LLM call, tool invocation,
+and token count — for observability and experiment tracking.
+
+---
+
+## Engineering Highlights
+
+| Capability | Where it lives |
+|---|---|
+| **FastMCP server** — 5 read-only tools, Pydantic I/O, SQL allowlist | `backend/mcp/` |
+| **LangChain agent** — LangGraph ReAct loop, tool-calling, conversation history | `backend/agent/` |
+| **Provider abstraction** — swap Bedrock ↔ FakeChatModel without touching agent code | `backend/llm/factory.py` |
+| **LangSmith** — optional tracing + eval datasets, zero-config disable | `app/main.py`, `evaluations/` |
+| **SQL safety** — `sqlglot` validates every LLM-generated query; only SELECT allowed | `mcp/tools/query_tools.py` |
+| **Evaluation framework** — 10 tasks, deterministic scoring, offline + real-LLM modes | `evaluations/` |
+| **Architecture boundary enforcement** — `check_architecture.py` fails CI on violations | `scripts/check_architecture.py` |
+| **Secrets detection** — `check_secrets.py` scans all tracked files in CI | `scripts/check_secrets.py` |
+| **Claude Code harness** — CLAUDE.md rules + post-edit ruff hooks | `CLAUDE.md`, `.claude/` |
+| **84 MCP contract tests** — tool schema, security, error paths | `backend/tests/integration/mcp/` |
+| **Full test pyramid** — 166 backend tests (unit + integration + E2E) + 16 frontend tests | `backend/tests/`, `frontend/src/` |
+| **Docker** — multi-stage backend image, nginx frontend, single `docker compose up` | `docker/`, `docker-compose.yml` |
+| **CI/CD** — backend, frontend, evaluations, architecture, Docker build in GitHub Actions | `.github/workflows/ci.yml` |
+
+---
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).

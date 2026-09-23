@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "case \"$FILEPATH\" in *.py) cd /Users/tenzintselha/ai-mcp-data-platform/backend && uv run ruff check --fix \"$FILEPATH\" 2>&1 && uv run ruff format \"$FILEPATH\" 2>&1 ;; esac"
+            "command": "case \"$FILEPATH\" in *.py) PROJ_ROOT=$(git -C \"$(dirname \"$FILEPATH\")\" rev-parse --show-toplevel 2>/dev/null) && [ -n \"$PROJ_ROOT\" ] && cd \"$PROJ_ROOT/backend\" && uv run ruff check --fix \"$FILEPATH\" 2>&1 && uv run ruff format \"$FILEPATH\" 2>&1 ;; esac"
           }
         ]
       }

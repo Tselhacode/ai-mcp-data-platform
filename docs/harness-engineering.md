@@ -34,11 +34,7 @@ Claude Code (coding agent)
         ▼
 Claude Hooks (automated triggers)
         │
-        ├── ruff check (linting)
-        ├── mypy (type checking)
-        ├── pytest (relevant tests)
-        ├── check_secrets.sh (security)
-        └── check_mcp_writes.sh (MCP safety)
+        └── ruff check + format (per-file, on every Python edit)
         │
         ▼
 Feedback to Claude Code
@@ -153,8 +149,12 @@ They provide automated feedback before Claude moves on.
 ```bash
 # Runs ruff lint + format on every edited Python file
 case "$FILEPATH" in
-  *.py) cd backend && uv run ruff check --fix "$FILEPATH" \
-                   && uv run ruff format "$FILEPATH" ;;
+  *.py)
+    PROJ_ROOT=$(git -C "$(dirname "$FILEPATH")" rev-parse --show-toplevel 2>/dev/null)
+    [ -n "$PROJ_ROOT" ] && cd "$PROJ_ROOT/backend" \
+      && uv run ruff check --fix "$FILEPATH" \
+      && uv run ruff format "$FILEPATH"
+    ;;
 esac
 ```
 

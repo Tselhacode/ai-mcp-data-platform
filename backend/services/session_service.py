@@ -14,7 +14,7 @@ import logging
 import uuid
 from typing import Any
 
-from data.models import SessionTurn
+from data.models import Session, SessionTurn
 from data.repositories.protocols import SessionRepositoryProtocol
 
 logger = logging.getLogger(__name__)
@@ -116,6 +116,38 @@ class SessionService:
                 provider=provider,
                 latency_ms=latency_ms,
             )
+        finally:
+            if db_session is not None:
+                await db_session.close()
+
+    async def get_session(self, session_id: str) -> Session | None:
+        """Return a session by ID, or None if not found.
+
+        Args:
+            session_id: Session UUID.
+
+        Returns:
+            Session if found, else None.
+        """
+        repo, db_session = self._get_repo()
+        try:
+            return await repo.get_session(session_id)
+        finally:
+            if db_session is not None:
+                await db_session.close()
+
+    async def list_sessions(self, limit: int = 20) -> list[Session]:
+        """Return recent sessions ordered by last_active descending.
+
+        Args:
+            limit: Maximum number of sessions to return (default 20).
+
+        Returns:
+            List of Session objects.
+        """
+        repo, db_session = self._get_repo()
+        try:
+            return await repo.list_sessions(limit=limit)
         finally:
             if db_session is not None:
                 await db_session.close()

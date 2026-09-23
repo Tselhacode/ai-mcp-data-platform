@@ -51,6 +51,11 @@ async def test_query_endpoint_returns_answer(test_settings):
         async def update_last_active(self, session_id):
             pass
 
+        async def list_sessions(self, limit: int = 20):
+            return sorted(self._sessions.values(), key=lambda s: s.last_active, reverse=True)[
+                :limit
+            ]
+
         async def get_history(self, session_id):
             return [t for t in self._turns if t.session_id == session_id]
 
@@ -138,6 +143,11 @@ async def test_query_with_session_id(test_settings):
 
         async def update_last_active(self, session_id):
             pass
+
+        async def list_sessions(self, limit: int = 20):
+            return sorted(self._sessions.values(), key=lambda s: s.last_active, reverse=True)[
+                :limit
+            ]
 
         async def get_history(self, session_id):
             return [t for t in self._turns if t.session_id == session_id]

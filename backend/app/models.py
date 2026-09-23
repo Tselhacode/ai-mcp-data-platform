@@ -37,3 +37,38 @@ class HealthResponse(BaseModel):
     """Response body for GET /api/v1/health."""
 
     status: str
+
+
+class SessionTurnResponse(BaseModel):
+    """A single conversation turn within a session."""
+
+    question: str
+    answer: str
+    tools_used: list[ToolUsageResponse]
+    latency_ms: int
+    created_at: str
+
+
+class SessionDetailResponse(BaseModel):
+    """Full session with all conversation turns."""
+
+    session_id: str
+    created_at: str
+    last_active: str
+    turns: list[SessionTurnResponse]
+
+
+class SessionSummary(BaseModel):
+    """Lightweight session entry for the sessions list."""
+
+    session_id: str
+    created_at: str
+    last_active: str
+    turn_count: int
+
+
+class SessionListResponse(BaseModel):
+    """Response body for GET /api/v1/sessions."""
+
+    sessions: list[SessionSummary]
+    total: int

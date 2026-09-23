@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings, get_settings
-from app.dependencies import set_agent_service
+from app.dependencies import set_agent_service, set_session_service
 from app.routes import router
 from logging_config import configure_logging
 
@@ -99,6 +99,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         llm_provider=settings.llm_provider,
     )
     set_agent_service(agent_service)
+    set_session_service(session_svc)
 
     logger.info("Application started", extra={"llm_provider": settings.llm_provider})
 

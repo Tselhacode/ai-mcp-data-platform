@@ -67,6 +67,20 @@ class SQLAlchemySessionRepository:
         db_session.last_active = datetime.now(UTC).replace(tzinfo=None)
         await self._session.commit()
 
+    async def list_sessions(self, limit: int = 20) -> list[Session]:
+        """Return recent sessions ordered by last_active descending.
+
+        Args:
+            limit: Maximum number of sessions to return.
+
+        Returns:
+            List of Session objects.
+        """
+        result = await self._session.execute(
+            select(Session).order_by(Session.last_active.desc()).limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def get_history(self, session_id: str) -> list[SessionTurn]:
         """Return all turns for a session in chronological order.
 

@@ -237,6 +237,17 @@ class SessionRepositoryProtocol(Protocol):
         """
         ...
 
+    async def list_sessions(self, limit: int = 20) -> list[Session]:
+        """Return recent sessions ordered by last_active descending.
+
+        Args:
+            limit: Maximum number of sessions to return (default 20).
+
+        Returns:
+            List of Session objects.
+        """
+        ...
+
     async def save_turn(
         self,
         session_id: str,

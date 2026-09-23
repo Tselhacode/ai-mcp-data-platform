@@ -9,8 +9,35 @@ from __future__ import annotations
 
 from typing import Any
 
-# Module-level singleton for the agent service
+# Module-level singletons
 _agent_service: Any | None = None
+_session_service: Any | None = None
+
+
+def set_session_service(service: Any) -> None:
+    """Set the module-level SessionService singleton.
+
+    Called during application startup (lifespan).
+
+    Args:
+        service: The SessionService instance.
+    """
+    global _session_service
+    _session_service = service
+
+
+def get_session_service() -> Any:
+    """FastAPI dependency that returns the SessionService singleton.
+
+    Returns:
+        The SessionService instance.
+
+    Raises:
+        RuntimeError: If the service has not been initialized.
+    """
+    if _session_service is None:
+        raise RuntimeError("SessionService not initialized. Application startup incomplete.")
+    return _session_service
 
 
 def set_agent_service(service: Any) -> None:

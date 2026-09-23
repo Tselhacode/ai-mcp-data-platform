@@ -30,8 +30,9 @@ out/
 coverage/
 *.tsbuildinfo
 
-# Data (local dev — not committed)
-data/
+# Data directory (local dev SQLite DB — not committed)
+/data/
+backend/data/db.sqlite
 
 # IDE
 .vscode/

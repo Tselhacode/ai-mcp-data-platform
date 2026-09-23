@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/db.sqlite
+      - LLM_PROVIDER=${LLM_PROVIDER:-fake}
+      - LLM_MODEL=${LLM_MODEL:-anthropic.claude-3-5-sonnet-20241022-v2:0}
+      - LLM_MAX_TOKENS=${LLM_MAX_TOKENS:-4096}
+      - LLM_MAX_ITERATIONS=${LLM_MAX_ITERATIONS:-10}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-stdio}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://localhost:80,http://frontend}
+      - LANGSMITH_TRACING=${LANGSMITH_TRACING:-false}
+      - LANGSMITH_API_KEY=${LANGSMITH_API_KEY:-}
+      - LANGSMITH_PROJECT=${LANGSMITH_PROJECT:-ai-mcp-data-platform}
+    volumes:
+      - backend_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  backend_data:

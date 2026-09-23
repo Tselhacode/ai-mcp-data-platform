@@ -7,6 +7,7 @@ that uses tool-calling to answer questions about energy data.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -37,7 +38,7 @@ class AnalystAgent:
     def __init__(
         self,
         llm: BaseChatModel,
-        tools: list[BaseTool],
+        tools: Sequence[BaseTool],
         max_iterations: int = 10,
     ) -> None:
         self._llm = llm

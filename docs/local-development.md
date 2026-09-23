@@ -40,9 +40,7 @@ docker compose up
 cd backend
 
 # Create virtual environment and install dependencies
-uv venv
-source .venv/bin/activate    # On Windows: .venv\Scripts\activate
-uv pip install -e ".[dev]"
+uv sync --all-extras
 
 # Set up environment
 cp ../.env.example ../.env
@@ -105,7 +103,7 @@ MCP_TRANSPORT=stdio
 LOG_LEVEL=INFO
 
 # CORS
-CORS_ORIGINS=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173,http://localhost:80
 ```
 
 **Never commit `.env` to git.**
@@ -116,22 +114,25 @@ CORS_ORIGINS=http://localhost:5173
 
 ```bash
 # All backend tests
-cd backend && pytest
+cd backend && uv run pytest
 
 # Unit tests only (fast, no I/O)
-pytest tests/unit/
+uv run pytest tests/unit/
 
 # Integration tests
-pytest tests/integration/
+uv run pytest tests/integration/
+
+# E2E tests (full pipeline with FakeChatModel)
+uv run pytest tests/e2e/
 
 # With coverage
-pytest --cov=app --cov-report=html
+uv run pytest --cov=app --cov-report=html
 
 # Frontend tests
 cd frontend && npm run test
 
 # Evaluation suite (offline, uses FakeChatModel)
-cd evaluations && pytest
+cd evaluations && uv run pytest
 ```
 
 ---
@@ -142,17 +143,17 @@ cd evaluations && pytest
 cd backend
 
 # Linting + formatting check
-ruff check .
-ruff format --check .
+uv run ruff check .
+uv run ruff format --check .
 
 # Auto-fix formatting
-ruff format .
+uv run ruff format .
 
 # Type checking
-mypy .
+uv run mypy .
 
 # Run everything at once
-ruff check . && ruff format --check . && mypy . && pytest
+uv run ruff check . && uv run ruff format --check . && uv run mypy . && uv run pytest
 ```
 
 ```bash
@@ -259,4 +260,4 @@ Ensure `AWS_REGION` is set and your AWS credentials are configured. Run
 `aws sts get-caller-identity` to verify credentials.
 
 **MCP server fails to start**
-Check that all backend dependencies are installed with `uv pip install -e ".[dev]"`.
+Check that all backend dependencies are installed with `uv sync --all-extras`.

@@ -2,12 +2,17 @@
 
 Pure Python service. No LangChain, no FastMCP, no FastAPI imports permitted.
 Wraps SessionRepositoryProtocol for conversation history management.
+
+Supports two modes:
+  1. Injected repository (legacy, used in some tests)
+  2. Session factory (production) - creates a fresh session per operation
 """
 
 from __future__ import annotations
 
 import logging
 import uuid
+from typing import Any
 
 from data.models import SessionTurn
 from data.repositories.protocols import SessionRepositoryProtocol
@@ -18,11 +23,36 @@ logger = logging.getLogger(__name__)
 class SessionService:
     """Manages conversation sessions and turns.
 
-    Accepts a session repository via constructor injection.
+    Accepts either a repository directly or a session_factory.
+    When session_factory is provided, a fresh DB session is created
+    per operation to avoid holding a long-lived connection.
     """
 
-    def __init__(self, repo: SessionRepositoryProtocol) -> None:
+    def __init__(
+        self,
+        repo: SessionRepositoryProtocol | None = None,
+        session_factory: Any | None = None,
+    ) -> None:
         self._repo = repo
+        self._session_factory = session_factory
+        if repo is None and session_factory is None:
+            raise ValueError("Either repo or session_factory must be provided")
+
+    def _get_repo(self) -> tuple[SessionRepositoryProtocol, Any]:
+        """Return a repository and optionally a session to close.
+
+        Returns:
+            (repo, session_or_none) - if session_or_none is not None,
+            caller must close it after use.
+        """
+        if self._repo is not None:
+            return self._repo, None
+        # Import here to avoid circular imports
+        from data.repositories.session import SQLAlchemySessionRepository
+
+        assert self._session_factory is not None  # guaranteed by __init__
+        session = self._session_factory()
+        return SQLAlchemySessionRepository(session), session
 
     async def create_or_get_session(self, session_id: str | None) -> str:
         """Return an existing session ID or create a new one.
@@ -33,18 +63,23 @@ class SessionService:
         Returns:
             The session ID (existing or newly created).
         """
-        if session_id is not None:
-            existing = await self._repo.get_session(session_id)
-            if existing is not None:
+        repo, db_session = self._get_repo()
+        try:
+            if session_id is not None:
+                existing = await repo.get_session(session_id)
+                if existing is not None:
+                    return session_id
+                # Session ID provided but not found -- create it
+                await repo.create_session(session_id)
                 return session_id
-            # Session ID provided but not found -- create it
-            await self._repo.create_session(session_id)
-            return session_id
 
-        new_id = str(uuid.uuid4())
-        await self._repo.create_session(new_id)
-        logger.debug("Created new session", extra={"session_id": new_id})
-        return new_id
+            new_id = str(uuid.uuid4())
+            await repo.create_session(new_id)
+            logger.debug("Created new session", extra={"session_id": new_id})
+            return new_id
+        finally:
+            if db_session is not None:
+                await db_session.close()
 
     async def save_turn(
         self,
@@ -70,15 +105,20 @@ class SessionService:
         Returns:
             The persisted SessionTurn.
         """
-        return await self._repo.save_turn(
-            session_id=session_id,
-            question=question,
-            answer=answer,
-            tools_called=tools_called,
-            model=model,
-            provider=provider,
-            latency_ms=latency_ms,
-        )
+        repo, db_session = self._get_repo()
+        try:
+            return await repo.save_turn(
+                session_id=session_id,
+                question=question,
+                answer=answer,
+                tools_called=tools_called,
+                model=model,
+                provider=provider,
+                latency_ms=latency_ms,
+            )
+        finally:
+            if db_session is not None:
+                await db_session.close()
 
     async def get_history(self, session_id: str) -> list[SessionTurn]:
         """Return all turns for a session in chronological order.
@@ -89,4 +129,9 @@ class SessionService:
         Returns:
             List of SessionTurn objects ordered by created_at ascending.
         """
-        return await self._repo.get_history(session_id)
+        repo, db_session = self._get_repo()
+        try:
+            return await repo.get_history(session_id)
+        finally:
+            if db_session is not None:
+                await db_session.close()

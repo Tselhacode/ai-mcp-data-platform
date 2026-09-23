@@ -4,8 +4,8 @@ A full-stack AI Data Analyst application demonstrating production-grade AI engin
 MCP server engineering, LLM/tool interaction, SQL analytics, evaluation-driven development,
 and harness engineering.
 
-> **Status:** Architecture and documentation phase. Implementation has not begun.
-> This document describes planned architecture, not completed features.
+> **Status:** Core implementation complete. Backend API, agent layer, MCP tools,
+> React frontend, Docker setup, and CI pipeline are implemented and tested.
 
 ---
 
@@ -77,34 +77,32 @@ for detailed component diagrams and architectural decision rationale.
 | Linting           | ruff, mypy, eslint                                  |
 | Formatting        | ruff format, prettier                               |
 | Containers        | Docker, Docker Compose                              |
-| CI/CD             | GitHub Actions (planned)                            |
+| CI/CD             | GitHub Actions                                      |
 | AWS (future)      | ECS / RDS / Bedrock / CloudWatch                    |
 
 ---
 
-## Planned Capabilities
+## Capabilities
 
-- **Natural language analytics** — Ask questions about energy consumption data in plain English
-- **MCP tool execution** — LLM selects and calls tools to query the database
-- **Multi-step reasoning** — Agent chains multiple tool calls to answer complex questions
-- **Conversation history** — Frontend maintains session context
-- **Evaluation harness** — Automated LLM evaluation against predefined analytical tasks
-- **Observability** — Structured logging, tool call tracing, evaluation recording
-- **Safe-by-default LLM** — Agent refuses unsafe modification requests
+- **Natural language analytics** -- Ask questions about energy consumption data in plain English
+- **MCP tool execution** -- LLM selects and calls tools to query the database
+- **Multi-step reasoning** -- Agent chains multiple tool calls to answer complex questions
+- **Conversation history** -- Session context maintained across turns
+- **Evaluation harness** -- Automated LLM evaluation against predefined analytical tasks
+- **Observability** -- Structured JSON logging, tool call tracing, request correlation IDs
+- **Safe-by-default LLM** -- Read-only MCP tools, SQL allowlist validation
 
 ---
 
-## Planned MCP Tools
+## MCP Tools
 
 | Tool                       | Description                                              |
 |----------------------------|----------------------------------------------------------|
-| `list_buildings`           | Return all buildings in the dataset                      |
-| `get_building_consumption` | Return consumption for a building over a time range      |
-| `compare_buildings`        | Compare two buildings across a time period               |
-| `get_monthly_summary`      | Summarize consumption by month for one or all buildings  |
-| `find_anomalies`           | Detect anomalous consumption readings                    |
-| `get_schema`               | Return database schema (safe, read-only)                 |
-| `run_safe_query`           | Execute a pre-validated read-only query                  |
+| `list_tables`              | Return all table names in the database                   |
+| `describe_table`           | Return column details for a given table                  |
+| `get_building_summary`     | Return consumption summary for a building over a range   |
+| `get_consumption_trend`    | Return daily consumption trend for a building            |
+| `run_readonly_query`       | Execute a validated read-only SQL query                  |
 
 See [docs/mcp.md](docs/mcp.md) for detailed tool specifications.
 
@@ -194,26 +192,27 @@ cd ai-mcp-data-platform
 docker compose up
 
 # Backend only
-cd backend && python -m uvicorn app.main:app --reload
+cd backend && uv run uvicorn app.main:app --reload
 
 # Frontend only
 cd frontend && npm run dev
 
 # Run evaluations
-cd evaluations && python -m pytest
+cd evaluations && uv run pytest
 ```
 
 ---
 
 ## Testing Overview
 
-| Test type        | Location            | Runner   |
-|------------------|---------------------|----------|
-| Backend unit     | `backend/tests/`    | pytest   |
-| Backend integration | `backend/tests/` | pytest   |
-| MCP contract     | `backend/tests/mcp/`| pytest   |
-| Frontend unit    | `frontend/src/`     | vitest   |
-| Evaluations      | `evaluations/`      | pytest   |
+| Test type           | Location                 | Runner   |
+|---------------------|--------------------------|----------|
+| Backend unit        | `backend/tests/unit/`    | pytest   |
+| Backend integration | `backend/tests/integration/` | pytest |
+| Backend E2E         | `backend/tests/e2e/`     | pytest   |
+| MCP contract        | `backend/tests/mcp/`     | pytest   |
+| Frontend unit       | `frontend/src/`          | vitest   |
+| Evaluations         | `evaluations/`           | pytest   |
 
 See [docs/testing.md](docs/testing.md).
 

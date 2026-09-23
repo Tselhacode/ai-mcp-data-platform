@@ -43,7 +43,6 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from agent.agent_service import AgentService
     from agent.mcp_client import load_mcp_tools
     from data.models import Base
-    from data.repositories.session import SQLAlchemySessionRepository
     from llm.factory import create_llm
     from mcp._server import create_mcp_server
     from mcp.dependencies import make_session_factory
@@ -61,26 +60,22 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             f"sqlite+aiosqlite:///file:test_{_uuid.uuid4().hex}?mode=memory&cache=shared&uri=true"
         )
 
-    session_factory = (
-        app.state.session_factory
-        if hasattr(app.state, "session_factory") and app.state.session_factory is not None
-        else make_session_factory(db_url)
-    )
+    if hasattr(app.state, "session_factory") and app.state.session_factory is not None:
+        # Session factory provided externally (e.g. tests with pre-seeded DB)
+        session_factory = app.state.session_factory
+    else:
+        # Create session factory and ensure tables exist
+        from sqlalchemy.ext.asyncio import create_async_engine
 
-    # Ensure tables exist (needed for test databases)
-    from sqlalchemy.ext.asyncio import create_async_engine
+        _engine = create_async_engine(
+            db_url,
+            echo=False,
+            connect_args={"check_same_thread": False} if "sqlite" in db_url else {},
+        )
+        async with _engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        await _engine.dispose()
 
-    _engine = create_async_engine(
-        db_url,
-        echo=False,
-        connect_args={"check_same_thread": False} if "sqlite" in db_url else {},
-    )
-    async with _engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await _engine.dispose()
-
-    # Rebuild session factory to use the same shared-cache URL
-    if app.state.session_factory is None:
         session_factory = make_session_factory(db_url)
 
     # Create MCP server and load tools
@@ -92,11 +87,8 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     else:
         tools = await load_mcp_tools(mcp_server)
 
-    # Create a persistent session for the session service
-    # The session stays open for the application lifetime
-    db_session = session_factory()
-    session_repo = SQLAlchemySessionRepository(db_session)
-    session_svc = SessionService(repo=session_repo)
+    # Create session service with session factory (creates DB session per operation)
+    session_svc = SessionService(session_factory=session_factory)
 
     # Create agent service
     agent_service = AgentService(
@@ -111,7 +103,6 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     yield
 
-    await db_session.close()
     logger.info("Application shutdown")
 
 

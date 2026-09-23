@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Sequence
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.tools import BaseTool
@@ -29,7 +30,7 @@ class AgentService:
     def __init__(
         self,
         llm: BaseChatModel,
-        tools: list[BaseTool],
+        tools: Sequence[BaseTool],
         session_service: SessionService,
         max_iterations: int = 10,
     ) -> None:

@@ -299,12 +299,11 @@ llm/factory.py
 parameter. The factory is called at application startup. In tests, `FakeChatModel`
 is injected directly — the factory is never called.
 
-**LangChain implementation choice deferred:**
-The specific LangChain agent implementation — whether `AgentExecutor`,
-`create_react_agent`, LangGraph, or another currently recommended pattern —
-will be decided at implementation time by inspecting the current LangChain
-and LangGraph APIs. The choice will be documented with rationale at that point.
-Do not assume any specific API from this document.
+**LangChain implementation: LangGraph `create_react_agent`.**
+The agent uses `langgraph.prebuilt.create_react_agent` which provides a ReAct
+tool-calling loop. This was chosen over `AgentExecutor` because LangGraph offers
+better control over iteration limits (via `recursion_limit`) and produces a
+structured message history that makes tool usage extraction straightforward.
 
 **MCP adapter:**
 The package and API for loading FastMCP tools as LangChain `BaseTool` instances
@@ -576,7 +575,7 @@ No code changes are required between local and AWS — only environment variable
 | Repository pattern | Yes | Swap SQLite → PostgreSQL without logic changes |
 | Agent layer separate from application services | Yes | Services usable without LangChain; MCP server independently testable |
 | LangChain confined to `backend/agent/` | Yes | Application services, MCP server, repositories have zero LangChain dependency |
-| LangChain implementation choice deferred | Yes | AgentExecutor vs. LangGraph decided at implementation time against current APIs |
+| LangGraph `create_react_agent` | Yes | Structured message history, recursion limit control, ReAct pattern |
 | LangChain for agent orchestration | Yes | Tested tool-calling loop, LangSmith integration, MCP adapter |
 | Factory pattern for LLM providers | Yes | Provider-specific imports isolated to `backend/llm/factory.py` |
 | `BaseChatModel` as abstraction | Yes | LangChain standard; enables fake + real providers |

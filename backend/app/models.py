@@ -30,6 +30,7 @@ class QueryResponse(BaseModel):
     answer: str
     tools_used: list[ToolUsageResponse]
     latency_ms: int
+    request_id: str = ""
 
 
 class HealthResponse(BaseModel):

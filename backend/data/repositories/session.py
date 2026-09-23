@@ -52,9 +52,7 @@ class SQLAlchemySessionRepository:
         Returns:
             Session if found, else None.
         """
-        result = await self._session.execute(
-            select(Session).where(Session.id == session_id)
-        )
+        result = await self._session.execute(select(Session).where(Session.id == session_id))
         return result.scalar_one_or_none()
 
     async def update_last_active(self, session_id: str) -> None:

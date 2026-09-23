@@ -10,13 +10,13 @@ from application code; use `alembic upgrade head` instead.
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     Float,
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     Text,
 )
@@ -64,9 +64,7 @@ class EnergyReading(Base):
     __tablename__ = "energy_readings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    building_id: Mapped[str] = mapped_column(
-        String(10), ForeignKey("buildings.id"), nullable=False
-    )
+    building_id: Mapped[str] = mapped_column(String(10), ForeignKey("buildings.id"), nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     kwh: Mapped[float] = mapped_column(Float, nullable=False)
     reading_type: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -124,9 +122,7 @@ class SessionTurn(Base):
     __tablename__ = "session_turns"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    session_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("sessions.id"), nullable=False
-    )
+    session_id: Mapped[str] = mapped_column(String(36), ForeignKey("sessions.id"), nullable=False)
     question: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     tools_called: Mapped[list[object]] = mapped_column(JSON, nullable=False, default=list)
@@ -135,9 +131,7 @@ class SessionTurn(Base):
     latency_ms: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
-    session: Mapped["Session"] = relationship(
-        "Session", back_populates="turns", lazy="noload"
-    )
+    session: Mapped["Session"] = relationship("Session", back_populates="turns", lazy="noload")
 
     def __repr__(self) -> str:
         return f"SessionTurn(id={self.id!r}, session_id={self.session_id!r})"
@@ -197,7 +191,4 @@ class EvaluationRecord(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"EvaluationRecord(id={self.id!r}, task_id={self.task_id!r}, "
-            f"passed={self.passed!r})"
-        )
+        return f"EvaluationRecord(id={self.id!r}, task_id={self.task_id!r}, passed={self.passed!r})"

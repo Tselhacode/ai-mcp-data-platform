@@ -12,8 +12,14 @@ No LangChain, FastMCP, or FastAPI imports are permitted in this module.
 from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
-from data.models import Building, EnergyReading, EvaluationRecord, EvaluationRun, Session, SessionTurn
-
+from data.models import (
+    Building,
+    EnergyReading,
+    EvaluationRecord,
+    EvaluationRun,
+    Session,
+    SessionTurn,
+)
 
 # ---------------------------------------------------------------------------
 # Return types for computed/aggregated results
@@ -130,7 +136,7 @@ class EnergyRepositoryProtocol(Protocol):
             building_id: If provided, return only this building's summary.
                          If None, return summaries for all buildings.
             year: Calendar year (e.g. 2024).
-            month: Calendar month (1–12).
+            month: Calendar month (1-12).
 
         Returns:
             List of MonthlySummary objects, one per building.

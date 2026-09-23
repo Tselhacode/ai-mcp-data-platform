@@ -210,7 +210,7 @@ def _serialize_value(value: Any) -> Any:
     """
     if value is None:
         return None
-    if isinstance(value, (int, float, str, bool)):
+    if isinstance(value, int | float | str | bool):
         return value
     # datetime, date, time → ISO string
     if hasattr(value, "isoformat"):

@@ -1,1 +1,2 @@
-# LLM factory and fake model scaffold — implementation in later phases.
+# LLM factory and fake model.
+# Only factory.py imports provider-specific packages (langchain_aws).

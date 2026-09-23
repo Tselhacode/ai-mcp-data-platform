@@ -8,7 +8,7 @@ No LangChain, FastMCP, or FastAPI imports are permitted in this module.
 
 import logging
 import math
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func, select, text
@@ -32,16 +32,12 @@ class SQLAlchemyEnergyRepository:
 
     async def get_buildings(self) -> list[Building]:
         """Return all buildings ordered by ID."""
-        result = await self._session.execute(
-            select(Building).order_by(Building.id)
-        )
+        result = await self._session.execute(select(Building).order_by(Building.id))
         return list(result.scalars().all())
 
     async def get_building(self, building_id: str) -> Building | None:
         """Return a single building by ID, or None."""
-        result = await self._session.execute(
-            select(Building).where(Building.id == building_id)
-        )
+        result = await self._session.execute(select(Building).where(Building.id == building_id))
         return result.scalar_one_or_none()
 
     async def get_consumption(
@@ -85,7 +81,7 @@ class SQLAlchemyEnergyRepository:
         Args:
             building_id: If None, return summaries for all buildings.
             year: Calendar year.
-            month: Calendar month (1–12).
+            month: Calendar month (1-12).
 
         Returns:
             MonthlySummary objects sorted by building_id.
@@ -149,9 +145,7 @@ class SQLAlchemyEnergyRepository:
             AnomalyRecord objects for anomalous readings.
         """
         # Fetch all electricity readings (or just for one building)
-        stmt = select(EnergyReading).where(
-            EnergyReading.reading_type == "electricity"
-        )
+        stmt = select(EnergyReading).where(EnergyReading.reading_type == "electricity")
         if building_id is not None:
             stmt = stmt.where(EnergyReading.building_id == building_id)
 

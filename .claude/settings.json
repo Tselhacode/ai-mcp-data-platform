@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd backend && uv run ruff check --fix \"$FILEPATH\" 2>&1 || true"
+          }
+        ]
+      }
+    ]
+  }
+}

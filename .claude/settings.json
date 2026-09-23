@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd backend && uv run ruff check --fix \"$FILEPATH\" 2>&1 || true"
+            "command": "case \"$FILEPATH\" in *.py) cd /Users/tenzintselha/ai-mcp-data-platform/backend && uv run ruff check --fix \"$FILEPATH\" 2>&1 && uv run ruff format \"$FILEPATH\" 2>&1 ;; esac"
           }
         ]
       }

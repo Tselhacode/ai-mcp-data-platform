@@ -40,8 +40,8 @@ async def load_mcp_tools(mcp_server: FastMCP) -> list[StructuredTool]:
             tool_name = mcp_tool.name
             tool_description = mcp_tool.description or ""
 
-            # Build the input schema from the MCP tool's inputSchema
-            input_schema = mcp_tool.inputSchema if mcp_tool.inputSchema else {}
+            # Build the input schema from the MCP tool's input_schema (MCP SDK v2)
+            input_schema = mcp_tool.input_schema if mcp_tool.input_schema else {}
 
             # Create a closure that captures the tool name for calling
             def _make_tool_fn(name: str) -> Any:

@@ -183,75 +183,76 @@ Application services (`backend/services/`) have no LangChain dependency.
 
 ```
 backend/agent/
-    AgentService     — public entry point; manages sessions; calls AnalystAgent
-    AnalystAgent     — constructs and invokes the LangChain agent
-    mcp_tools.py     — loads FastMCP tools as BaseTool instances
+    agent_service.py  — public entry point; manages sessions; calls AnalystAgent
+    analyst_agent.py  — constructs and invokes the LangGraph agent
+    mcp_client.py     — loads FastMCP tools as LangChain BaseTool instances
+    schemas.py        — AgentResult, ToolUsage (no LangChain types exposed)
 ```
 
-**Conceptual structure** (specific LangChain API decided at implementation time):
+**Implementation:**
 
 ```python
-# backend/agent/agent_service.py
-from langchain_core.language_models.base import BaseChatModel
-from langchain_core.tools import BaseTool
-
-class AgentService:
-    def __init__(
-        self,
-        llm: BaseChatModel,              # injected via factory or test fake
-        session_service: SessionService, # direct call — infrastructure, not domain
-        analyst_agent: AnalystAgent,
-    ): ...
-
-    async def run(self, question: str, session_id: str | None) -> AgentResult:
-        history = await self.session_service.get_history(session_id)
-        result = await self.analyst_agent.invoke(question, history)
-        await self.session_service.save_turn(session_id, question, result)
-        return result
-
 # backend/agent/analyst_agent.py
+from langgraph.prebuilt import create_react_agent
+
 class AnalystAgent:
-    """
-    Wraps the LangChain agent. Specific implementation
-    (AgentExecutor / create_react_agent / LangGraph) chosen at
-    implementation time based on current LangChain recommendations.
-    """
-    def __init__(self, llm: BaseChatModel, tools: list[BaseTool]): ...
-    async def invoke(self, question: str, history: list) -> AgentResult: ...
+    """Wraps LangGraph create_react_agent for energy analytics."""
+
+    def __init__(self, llm: BaseChatModel, tools: Sequence[BaseTool],
+                 max_iterations: int = 10) -> None:
+        self._agent = create_react_agent(llm, tools, prompt=_SYSTEM_PROMPT)
+        self._max_iterations = max_iterations
+
+    async def invoke(self, question: str, history: list | None = None) -> AgentResult:
+        result = await self._agent.ainvoke(
+            {"messages": messages},
+            config={"recursion_limit": self._max_iterations * 2 + 1},
+        )
+        ...
 ```
 
-**Implementation choice deferred:** Whether to use `AgentExecutor`,
-`create_react_agent`, LangGraph, or another pattern will be decided during
-Phase 1 by inspecting the current LangChain/LangGraph APIs and choosing
-the simplest approach that satisfies the project requirements. The decision
-and reasoning will be documented in this file at that time.
+**Implementation choice: LangGraph `create_react_agent`.**
+Uses `langgraph.prebuilt.create_react_agent` which provides a ReAct
+tool-calling loop. Chosen over `AgentExecutor` because LangGraph offers
+better control over iteration limits via `recursion_limit` and produces a
+structured message history that makes tool usage extraction straightforward.
+
+**Note:** `create_react_agent` is being moved to `langchain.agents` in
+LangGraph V2.0. The current import path (`langgraph.prebuilt`) is deprecated
+but functional. This is a known limitation — migration requires a one-line
+import change.
 
 **Max iterations:** Configured via `LLM_MAX_ITERATIONS` (default: 10).
-The chosen agent implementation will enforce this bound.
+Enforced via `config={"recursion_limit": max_iterations * 2 + 1}`.
 
 ---
 
 ## MCP Tools as LangChain Tools
 
 The FastMCP server exposes tools via the MCP protocol. At application startup,
-`backend/agent/mcp_tools.py` connects to the server and loads tools as
-`BaseTool` instances that the LangChain agent can invoke.
+`backend/agent/mcp_client.py` connects to the server in-process and loads tools as
+`StructuredTool` instances that the LangChain agent can invoke.
 
 ```python
-# backend/agent/mcp_tools.py
+# backend/agent/mcp_client.py
 
-async def load_tools_from_mcp_server(transport: str) -> list[BaseTool]:
-    """
-    Connects to the FastMCP server and returns tools as LangChain BaseTool
-    instances. The agent invokes these without knowing they are backed by MCP.
-    """
-    ...
+async def load_mcp_tools(mcp_server: FastMCP) -> list[StructuredTool]:
+    """Load tools from a FastMCP server as LangChain StructuredTool instances."""
+    async with FastMCPClient(mcp_server) as client:
+        mcp_tools = await client.list_tools()
+        for mcp_tool in mcp_tools:
+            lc_tool = StructuredTool.from_function(
+                coroutine=_make_tool_fn(mcp_tool.name),
+                name=mcp_tool.name,
+                description=mcp_tool.description,
+            )
+            tools.append(lc_tool)
+    return tools
 ```
 
-**Implementation note:** The specific package and API for loading MCP tools as
-LangChain tools will be verified at implementation time. The LangChain MCP
-ecosystem is evolving; do not assume the import path or API surface documented
-in any draft is current. Verify against the live package at implementation.
+**Adapter note:** `langchain-mcp-adapters` v0.3.1 is incompatible with the
+MCP SDK 2.2.0 installed by FastMCP 4.0.5. The custom adapter in
+`mcp_client.py` uses `fastmcp.Client` directly as a workaround.
 
 **The FastMCP server remains independently usable.** Any MCP-compatible client
 (Claude Desktop, another framework, a test script) can connect to it. LangChain

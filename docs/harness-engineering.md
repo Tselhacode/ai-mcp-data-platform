@@ -142,33 +142,35 @@ architecture and reinventing patterns that already exist.
 
 ---
 
-### 2. Claude Hooks (Planned)
+### 2. Claude Hooks
 
 Claude Hooks run shell commands at specific points in a Claude Code session.
-They provide automated feedback before Claude makes a mistake.
+They provide automated feedback before Claude moves on.
 
-#### Planned hooks
+#### Implemented hooks
 
-**Post-tool: after any Python file edit**
+**Post-tool-use: after any Python file edit (`.claude/settings.json`)**
 ```bash
-ruff check "$CHANGED_FILE"
-mypy "$CHANGED_MODULE"
+# Runs ruff lint + format on every edited Python file
+case "$FILEPATH" in
+  *.py) cd backend && uv run ruff check --fix "$FILEPATH" \
+                   && uv run ruff format "$FILEPATH" ;;
+esac
 ```
 
-**Post-tool: after any test file edit**
-```bash
-pytest "$CHANGED_TEST_FILE" -x
-```
+This fires immediately after every `Edit` or `Write` tool call on a `.py` file.
+Non-Python files (TypeScript, YAML, etc.) are skipped.
 
-**Post-session: before session ends**
-```bash
-pytest backend/tests/ -q
-scripts/hooks/check_secrets.sh
-scripts/security/check_mcp_writes.sh
-```
+**What this prevents:**
+- Committing code with lint violations
+- Leaving manual import ordering after a refactor
+- Formatting inconsistencies that cause noisy diffs
 
-Hooks are configured in `.claude/settings.json` and documented in
-`scripts/hooks/README.md`.
+**Limitations:**
+- Does not run mypy or pytest automatically (too slow for per-edit feedback)
+- Does not run on file renames or deletions
+
+Hooks are configured in `.claude/settings.json`.
 
 ---
 
@@ -211,58 +213,70 @@ incorrect LangChain model usage).
 
 ---
 
-### 5. MCP Contract Validation (Planned)
+### 5. MCP Contract Tests
 
-A suite of tests that:
-1. Register all MCP tools from the FastMCP server
-2. Verify each tool's schema matches the spec in `docs/mcp.md`
-3. Call each tool with valid inputs and verify output shape
-4. Call each tool with invalid inputs and verify structured error response
+A suite of 84 integration tests in `backend/tests/integration/mcp/` that:
+1. Start the FastMCP server in-process against an in-memory SQLite database
+2. Call each tool with valid inputs and verify output shape and values
+3. Call each tool with invalid inputs and verify structured error responses
+4. Verify SQL security constraints (`run_readonly_query` rejects writes, UNION, multi-statement)
 
 This catches the common agent error of changing a tool's input schema without
 updating the evaluation tasks that reference it. An agent can change a tool and
 still pass unit tests — the contract test is the guard.
 
----
-
-### 6. Security Checks (Planned)
-
 ```bash
-# Check for secrets in staged files
-scripts/hooks/check_secrets.sh
-
-# Check for SQL injection risks
-scripts/security/check_raw_sql.sh
-
-# Check for write operations in MCP tools
-scripts/security/check_mcp_writes.sh
-
-# Check for provider-specific imports outside factory.py
-scripts/security/check_llm_imports.sh
-
-# Check dependencies for known vulnerabilities
-pip-audit
-npm audit
+cd backend && uv run pytest tests/integration/mcp/ -v
 ```
-
-These run in CI and optionally as Claude Hooks.
 
 ---
 
-### 7. Documentation Validation (Planned)
+### 6. Security Checks
 
 ```bash
-# Check all MCP tools in docs/mcp.md exist in server.py
-scripts/validate/check_mcp_docs.sh
+# Detect secrets in the repository (runs in CI)
+python scripts/check_secrets.py
 
-# Check all API endpoints in docs/architecture.md exist in routes
-scripts/validate/check_api_docs.sh
-
-# Check all evaluation tasks in docs/evaluations.md have task files
-scripts/validate/check_eval_tasks.sh
+# Enforce architecture boundaries (runs in CI)
+cd backend && python ../scripts/check_architecture.py
 ```
 
-Documentation drift is a common failure mode when coding agents make changes.
+**`check_secrets.py`** scans all tracked files for:
+- AWS Access Key IDs (`AKIA...`, `ASIA...`)
+- AWS Secret Keys
+- LangSmith API keys (`ls-...`, `lsv2_...`)
+- OpenAI-style keys (`sk-...`)
+- Anthropic API keys (`sk-ant-...`)
+- Private key markers
+- Hard-coded passwords
+
+Skips `.venv`, `node_modules`, `__pycache__`, `.git`, `.claude`,
+lock files, and binary formats.
+
+**`check_architecture.py`** enforces import boundaries:
+- `services/`, `data/`, `app/` cannot import from `langchain`, `langsmith`, or `fastmcp`
+- `mcp/` cannot import from `langchain` or `langsmith`
+- Only `llm/factory.py` may import `langchain_aws` or `ChatBedrock`
+
+Both scripts exit with code 1 on violations, failing the CI job.
+
+---
+
+### 7. Documentation Accuracy
+
+The harness relies on documentation that matches the code. Key doc/code pairs that
+should remain consistent:
+
+| Document | Code it describes |
+|---|---|
+| `docs/mcp.md` | `backend/mcp/tools/*.py` tool signatures |
+| `docs/evaluations.md` | `evaluations/tasks/*.py` task definitions |
+| `docs/llm.md` | `backend/llm/factory.py`, `backend/agent/` |
+| `docs/database.md` | `backend/data/models.py` |
+| `CLAUDE.md` / `AGENTS.md` | Entire repository structure |
+
+When modifying tools, tasks, or APIs, update the corresponding doc page in the
+same commit. This is enforced as a requirement in CLAUDE.md.
 
 ---
 

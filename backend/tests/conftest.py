@@ -5,10 +5,17 @@ This is set as the very first operation in this module.
 """
 
 import os
+import warnings
 
 # Disable LangSmith unconditionally for all tests.
 # This must be set before any LangChain imports occur.
 os.environ["LANGSMITH_TRACING"] = "false"
+
+# Suppress LangGraph V1.0 deprecation warning for create_react_agent.
+# The new import path (langchain.agents) requires installing `langchain` as an
+# additional dependency. We use langgraph.prebuilt directly — the import still
+# works and will continue to work until LangGraph V2.0.
+warnings.filterwarnings("ignore", message="create_react_agent has been moved")
 
 from collections.abc import AsyncGenerator
 from datetime import datetime

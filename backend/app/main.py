@@ -96,6 +96,7 @@ async def _lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         tools=tools,
         session_service=session_svc,
         max_iterations=settings.llm_max_iterations,
+        llm_provider=settings.llm_provider,
     )
     set_agent_service(agent_service)
 

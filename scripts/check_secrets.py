@@ -8,18 +8,23 @@ import re
 import sys
 
 SECRET_PATTERNS = [
-    (r"(?i)AKIA[0-9A-Z]{16}", "AWS Access Key ID"),
+    # AWS access key IDs begin with AKIA (long-term) or ASIA (temporary)
+    (r"(?:AKIA|ASIA)[0-9A-Z]{16}", "AWS Access Key ID"),
     (
         r'(?i)aws_secret_access_key\s*=\s*["\'][^"\']{20,}["\']',
         "AWS Secret Key",
     ),
+    # LangSmith keys: legacy ls-... and current lsv2_... format
     (
-        r"(?i)LANGSMITH_API_KEY\s*=\s*ls-[a-zA-Z0-9]{20,}",
+        r"(?i)LANGSMITH_API_KEY\s*=\s*(?:ls-|lsv2_)[a-zA-Z0-9_\-]{20,}",
         "LangSmith API Key (real)",
     ),
-    (r"(?i)sk-[a-zA-Z0-9]{32,}", "OpenAI-style API Key"),
+    # OpenAI-style keys
+    (r"sk-[a-zA-Z0-9]{32,}", "OpenAI-style API Key"),
+    # Anthropic API keys
+    (r"sk-ant-[a-zA-Z0-9\-]{30,}", "Anthropic API Key"),
     (
-        r"-----BEGIN (RSA|EC|DSA|OPENSSH) PRIVATE KEY-----",
+        r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
         "Private Key",
     ),
     (r'(?i)password\s*=\s*["\'][^"\']{8,}["\']', "Password in code"),

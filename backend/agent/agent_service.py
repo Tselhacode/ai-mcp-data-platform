@@ -33,8 +33,10 @@ class AgentService:
         tools: Sequence[BaseTool],
         session_service: SessionService,
         max_iterations: int = 10,
+        llm_provider: str = "fake",
     ) -> None:
         self._llm = llm
+        self._llm_provider = llm_provider
         self._session_service = session_service
         self._analyst = AnalystAgent(
             llm=llm,
@@ -61,12 +63,8 @@ class AgentService:
         # Create or retrieve session
         sid = await self._session_service.create_or_get_session(session_id)
 
-        # Get conversation history for context
+        # Get conversation history for context (interleaved user/assistant turns)
         history_turns = await self._session_service.get_history(sid)
-        history = [{"role": "user", "content": t.question} for t in history_turns] + [
-            {"role": "assistant", "content": t.answer} for t in history_turns
-        ]
-        # Interleave properly: user, assistant, user, assistant...
         history = []
         for t in history_turns:
             history.append({"role": "user", "content": t.question})
@@ -87,8 +85,8 @@ class AgentService:
             question=question,
             answer=result.answer,
             tools_called=tools_called,
-            model=getattr(self._llm, "model_id", "fake"),
-            provider="bedrock" if hasattr(self._llm, "model_id") else "fake",
+            model=getattr(self._llm, "model_id", self._llm_provider),
+            provider=self._llm_provider,
             latency_ms=elapsed_ms,
         )
 

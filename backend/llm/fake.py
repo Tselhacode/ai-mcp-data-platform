@@ -14,7 +14,7 @@ from typing import Any
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 
 @dataclass
@@ -45,11 +45,10 @@ class FakeChatModel(BaseChatModel):
         ])
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     script: list[ScriptedResponse] = Field(default_factory=list)
     _call_index: int = 0
-
-    class Config:
-        arbitrary_types_allowed = True
 
     @property
     def _llm_type(self) -> str:

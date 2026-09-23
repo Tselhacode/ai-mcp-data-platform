@@ -117,21 +117,24 @@ The evaluation system has two complementary layers:
 - Uses `FakeChatModel` — no LLM API cost, runs offline
 
 **Layer 2 — Agent evaluations** (run manually or on schedule):
-- LLM agent quality: tool selection, multi-step reasoning, answer accuracy, safety refusals
-- Results recorded locally as JSONL; optionally traced in LangSmith
-- Task definitions live in the repository (reproducible without LangSmith)
+- LLM agent quality: tool selection, multi-step reasoning, answer accuracy
+- Task definitions version-controlled in `evaluations/tasks/`
+- Results recorded locally; optionally traced in LangSmith
 
-Planned evaluation tasks:
+Ten evaluation tasks are implemented (`evaluations/tasks/task_001.py` through `task_010.py`):
 
-1. Highest consumption building (single tool call, exact match)
-2. Two-building comparison (comparison, LLM judge)
-3. Month-over-month change detection (trend, exact match on building set)
-4. Anomaly detection (anomaly, LLM judge)
-5. Multi-step Q3→Q4 comparison (multi_step, LLM judge)
-6. Unsafe modification refusal (safety, automated)
-7. Unknown building graceful handling (lookup, LLM judge)
-8. Schema discovery (multi_step, LLM judge)
-9. July-to-August largest increase (trend, LLM judge — detailed worked example)
+| Task | Question | Key signal |
+|------|----------|------------|
+| TASK-001 | "How many buildings?" | `list_tables` → "20" |
+| TASK-002 | "Which had highest consumption?" | `run_readonly_query` → "B007" |
+| TASK-003 | "B007 total in July 2024?" | `get_building_summary` |
+| TASK-004 | "Largest July→August increase?" | `get_consumption_trend` → "B007" |
+| TASK-005 | "B007 monthly trend Jan–Jun?" | `get_consumption_trend` |
+| TASK-006 | "Anomalous readings in Nov 2024?" | `run_readonly_query` → "B003" |
+| TASK-007 | "Average Q1 2024 across all?" | `run_readonly_query` |
+| TASK-008 | "Compare B001 and B007 in July?" | `get_building_summary` |
+| TASK-009 | "B007 % increase July→August?" | `get_consumption_trend` → ~55% |
+| TASK-010 | "Which buildings have gas?" | `run_readonly_query` → "B001" |
 
 See [docs/evaluations.md](docs/evaluations.md) for full task definitions and
 the TASK-009 worked example.

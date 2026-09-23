@@ -15,7 +15,7 @@ The same SQLAlchemy models work for both. Only `DATABASE_URL` changes.
 
 ---
 
-## Planned Schema
+## Schema
 
 ### buildings
 

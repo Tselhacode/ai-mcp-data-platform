@@ -44,6 +44,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+filterwarnings = [
+    # LangGraph V1.0 deprecates create_react_agent from langgraph.prebuilt.
+    # The new import path requires installing `langchain` separately, which is
+    # not in our dependencies. The current import still works until LangGraph V2.0.
+    "ignore:create_react_agent has been moved",
+]
 
 [tool.ruff]
 line-length = 100
@@ -52,6 +58,12 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "PT", "RUF"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# conftest.py must set os.environ and warnings filters before importing
+# test dependencies that trigger LangChain/LangGraph initialization.
+"tests/conftest.py" = ["E402"]
+"evaluations/tests/conftest.py" = ["E402"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app", "data", "services", "agent", "mcp", "llm"]

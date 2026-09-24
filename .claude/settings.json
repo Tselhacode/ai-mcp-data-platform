@@ -11,5 +11,16 @@
         ]
       }
     ]
+  },
+  "mcpServers": {
+    "energy-data": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "mcp._server"],
+      "cwd": "/Users/tenzintselha/ai-mcp-data-platform/backend",
+      "env": {
+        "DATABASE_URL": "sqlite+aiosqlite:///./data/db.sqlite",
+        "MCP_TRANSPORT": "stdio"
+      }
+    }
   }
 }

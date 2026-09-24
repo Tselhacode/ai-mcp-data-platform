@@ -1,26 +1,14 @@
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "case \"$FILEPATH\" in *.py) PROJ_ROOT=$(git -C \"$(dirname \"$FILEPATH\")\" rev-parse --show-toplevel 2>/dev/null) && [ -n \"$PROJ_ROOT\" ] && cd \"$PROJ_ROOT/backend\" && uv run ruff check --fix \"$FILEPATH\" 2>&1 && uv run ruff format \"$FILEPATH\" 2>&1 ;; esac"
-          }
-        ]
-      }
-    ]
-  },
-  "mcpServers": {
-    "energy-data": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "mcp._server"],
-      "cwd": "/Users/tenzintselha/ai-mcp-data-platform/backend",
-      "env": {
-        "DATABASE_URL": "sqlite+aiosqlite:///./data/db.sqlite",
-        "MCP_TRANSPORT": "stdio"
+
+  {
+    "mcpServers": {
+      "energy-data": {
+        "command": "uv",
+        "args": ["run", "python", "-m", "mcp._server"],
+        "cwd": "/Users/tenzintselha/ai-mcp-data-platform/backend",
+        "env": {
+          "DATABASE_URL": "sqlite+aiosqlite:///./data/db.sqlite",
+          "MCP_TRANSPORT": "stdio"
+        }
       }
     }
   }
-}
